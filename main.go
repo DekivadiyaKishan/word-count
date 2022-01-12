@@ -30,7 +30,7 @@ func main() {
 			sortedList = sortedList[:10]
 			byteData, err := json.Marshal(sortedList)
 			if err != nil {
-				rw.WriteHeader(200)
+				rw.WriteHeader(500)
 				rw.Header().Add("Content-type", "application/json")
 				rw.Write([]byte(`{"error": "something is wrong try again"}`))
 			}
