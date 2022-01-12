@@ -1,31 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
+	"encoding/json"
+	"net/http"
 	"regexp"
 	"sort"
 )
 
 func main() {
-	path := os.Args[1]
-	file, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
 
-	rawData, err := ioutil.ReadAll(file)
-	if err != nil {
-		panic(err)
-	}
+	http.ListenAndServe(":8080", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 
-	wordsWithCount := countWords(fetchWords(string(rawData)))
-	pairList := rankByWordCount(wordsWithCount)
-	for i := 0; i <= 9; i++ {
-		fmt.Printf("%v %v\n", pairList[i].Key, pairList[i].Value)
-	}
+		var req RequestBody
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			rw.WriteHeader(500)
+			rw.Header().Add("Content-type", "application/json")
+			rw.Write([]byte(`{"error": "something is wrong try again"}`))
+		}
 
+		wordsWithCount := countWords(fetchWords(req.Input))
+		if len(wordsWithCount) == 0 {
+			rw.WriteHeader(200)
+			rw.Header().Add("Content-type", "application/json")
+			rw.Write([]byte(`[]`))
+			return
+		} else {
+			sortedList := rankByWordCount(wordsWithCount)
+			sortedList = sortedList[:10]
+			byteData, err := json.Marshal(sortedList)
+			if err != nil {
+				rw.WriteHeader(200)
+				rw.Header().Add("Content-type", "application/json")
+				rw.Write([]byte(`{"error": "something is wrong try again"}`))
+			}
+			rw.WriteHeader(200)
+			rw.Header().Add("Content-type", "application/json")
+			rw.Write(byteData)
+			return
+		}
+
+	}))
+}
+
+type RequestBody struct {
+	Input string `json:"input"`
 }
 
 func fetchWords(text string) []string {
