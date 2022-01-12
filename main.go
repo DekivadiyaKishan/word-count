@@ -7,6 +7,10 @@ import (
 	"sort"
 )
 
+type RequestBody struct {
+	Input string `json:"input"`
+}
+
 func main() {
 
 	http.ListenAndServe(":8080", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -19,15 +23,18 @@ func main() {
 			rw.Write([]byte(`{"error": "something is wrong try again"}`))
 		}
 
-		wordsWithCount := countWords(fetchWords(req.Input))
-		if len(wordsWithCount) == 0 {
+		fetchWords := fetchWords(req.Input)
+		if len(fetchWords) == 0 {
 			rw.WriteHeader(200)
 			rw.Header().Add("Content-type", "application/json")
 			rw.Write([]byte(`[]`))
 			return
 		} else {
+			wordsWithCount := countWords(fetchWords)
 			sortedList := rankByWordCount(wordsWithCount)
-			sortedList = sortedList[:10]
+			if len(sortedList) >= 10 {
+				sortedList = sortedList[:10]
+			}
 			byteData, err := json.Marshal(sortedList)
 			if err != nil {
 				rw.WriteHeader(500)
@@ -41,10 +48,6 @@ func main() {
 		}
 
 	}))
-}
-
-type RequestBody struct {
-	Input string `json:"input"`
 }
 
 func fetchWords(text string) []string {
